@@ -39,6 +39,7 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.build_run_id }}
           merge-multiple: true
+          skip-decompress: true
           path: release-assets
 
       - name: Create draft and publish all assets
