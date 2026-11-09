@@ -22,12 +22,14 @@ ReplyInfo _reply({
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Directory tempDir;
 
   setUpAll(() async {
     tempDir = await Directory.systemTemp.createTemp('piliplus-reply-filter-');
     Hive.init(tempDir.path);
     GStorage.setting = await Hive.openBox('setting');
+    GStorage.localCache = await Hive.openBox('localCache');
   });
 
   setUp(() async {
