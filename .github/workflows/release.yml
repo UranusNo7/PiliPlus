@@ -1,0 +1,83 @@
+name: Publish existing build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful Build workflow run ID
+        required: true
+        type: string
+      tag:
+        description: Release tag
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_RUN_ID: ${{ inputs.build_run_id }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Check successful source build
+        id: source
+        shell: bash
+        run: |
+          sha=$(gh run view "$BUILD_RUN_ID" --json conclusion,headSha,workflowName --jq 'select(.conclusion == "success" and .workflowName == "Build") | .headSha')
+          test -n "$sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.build_run_id }}
+          merge-multiple: true
+          path: release-assets
+
+      - name: Create draft and publish all assets
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          apks=(release-assets/PiliPlus_android_*.apk)
+          installers=(release-assets/PiliPlus_windows_*_x64_setup.exe)
+          portable=(release-assets/PiliPlus_windows_*_x64_portable.zip)
+          test "${#apks[@]}" -eq 3
+          test "${#installers[@]}" -eq 1
+          test "${#portable[@]}" -eq 1
+          assets=("${apks[@]}" "${installers[@]}" "${portable[@]}")
+          for asset in "${assets[@]}"; do test -s "$asset"; done
+          cat > release-notes.md <<'EOF'
+          ## 评论过滤增强版
+
+          基于 PiliPlus 2.2.0，新增两项自行配置的评论过滤设置：
+
+          - **屏蔽低等级评论**：默认禁用，可选择低于 Lv1–Lv6。例如低于 Lv3 屏蔽 Lv0–Lv2；缺少等级数据时不据此屏蔽。
+          - **评论昵称关键词过滤**：默认空，复用原有关键词工具；使用 `|` 分隔，忽略大小写，仅匹配昵称，不匹配正文。
+
+          复用现有评论过滤链、设置存储和界面组件，没有新增 AI 判断、外部服务或扩展依赖。修改设置后刷新评论生效。
+
+          ## 下载
+
+          - Windows x64：`setup.exe` 为安装版，`portable.zip` 为便携版。
+          - Android：一般手机选择 `arm64-v8a.apk`，旧款 32 位设备选择 `armeabi-v7a.apk`，x86_64 模拟器选择 `x86_64.apk`。
+
+          ## 注意
+
+          - 这是 UranusNo7/PiliPlus fork 的自定义版本，不是上游官方发布。
+          - Android 未配置正式签名密钥，使用项目现有调试签名回退配置，通常不能覆盖安装上游正式版。卸载前请备份设置及需保留的数据；不建议作为长期稳定更新渠道。
+          - Windows 未配置代码签名，首次启动可能出现系统信誉提示。
+          - 评论过滤针对性测试已在 GitHub Actions 通过；尚未进行真机安装和界面实测。
+          EOF
+          printf '\n构建记录：https://github.com/%s/actions/runs/%s\n' "$GH_REPO" "$BUILD_RUN_ID" >> release-notes.md
+          gh release create "$RELEASE_TAG" "${assets[@]}" --target "$SOURCE_SHA" --draft --title 'PiliPlus 2.2.0 评论过滤增强版' --notes-file release-notes.md
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+          gh release view "$RELEASE_TAG" --json url,isDraft,assets
