@@ -17,6 +17,13 @@ abstract final class ReplyGrpc {
     caseSensitive: false,
   );
   static bool enableFilter = replyRegExp.pattern.isNotEmpty;
+  static RegExp replyNameRegExp = RegExp(
+    Pref.banWordForReplyName,
+    caseSensitive: false,
+  );
+
+  /// 屏蔽低于该等级的评论（严格小于）；0 表示禁用
+  static int blockReplyLevel = Pref.blockReplyLevel;
 
   // static Future replyInfo({required int rpid}) {
   //   return _request(
@@ -96,11 +103,22 @@ abstract final class ReplyGrpc {
         reply.content.atNameToMid.length >= blockReplyAtCount!;
   }
 
+  /// 等级门槛：level 字段缺失时不判断，避免把缺失当成 Lv0
+  static bool _blockReplyLevel(ReplyInfo reply) {
+    if (blockReplyLevel <= 0) return false;
+    if (!reply.hasMember() || !reply.member.hasLevel()) return false;
+    return reply.member.level.toInt() < blockReplyLevel;
+  }
+
   static bool needRemoveGrpc(ReplyInfo reply) {
     return GlobalData().blackMids.contains(reply.mid.toInt()) ||
         _blockReplyAtCount(reply) ||
         _blockAtOnlyReply(reply) ||
         (antiGoodsReply && _needRemoveGoodGrpc(reply)) ||
+        _blockReplyLevel(reply) ||
+        (replyNameRegExp.pattern.isNotEmpty &&
+            reply.member.name.isNotEmpty &&
+            replyNameRegExp.hasMatch(reply.member.name)) ||
         (enableFilter && replyRegExp.hasMatch(reply.content.message));
   }
 

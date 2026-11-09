@@ -92,6 +92,7 @@ abstract final class SettingBoxKey {
       cdnSpeedTest = 'cdnSpeedTest',
       horizontalPreview = 'horizontalPreview',
       banWordForReply = 'banWordForReply',
+      banWordForReplyName = 'banWordForReplyName',
       banWordForZone = 'banWordForZone',
       savedRcmdTip = 'savedRcmdTip',
       openInBrowser = 'openInBrowser',
@@ -165,6 +166,7 @@ abstract final class SettingBoxKey {
       buvid = 'buvid',
       blockAtOnlyReply = 'blockAtOnlyReply',
       blockReplyAtCount = 'blockReplyAtCount',
+      blockReplyLevel = 'blockReplyLevel',
       filterIntro = 'filterIntro',
       showRefreshFAB = 'showRefreshFAB';
 

@@ -82,6 +82,9 @@ jobs:
               shell: pwsh
               run: lib/scripts/patch.ps1 android
 
+            - name: Test comment filters
+              run: flutter test --no-pub test/grpc/reply_filter_test.dart
+
             - name: Write key
               if: github.event_name == 'workflow_dispatch'
               run: |

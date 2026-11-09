@@ -289,6 +289,9 @@ abstract final class Pref {
   static String get banWordForReply =>
       _setting.get(SettingBoxKey.banWordForReply, defaultValue: '');
 
+  static String get banWordForReplyName =>
+      _setting.get(SettingBoxKey.banWordForReplyName, defaultValue: '');
+
   static String get banWordForZone =>
       _setting.get(SettingBoxKey.banWordForZone, defaultValue: '');
 
@@ -1111,6 +1114,10 @@ abstract final class Pref {
 
   static int? get blockReplyAtCount =>
       _setting.get(SettingBoxKey.blockReplyAtCount);
+
+  /// 屏蔽低于该等级的评论（严格小于）；0 表示禁用
+  static int get blockReplyLevel =>
+      _setting.get(SettingBoxKey.blockReplyLevel, defaultValue: 0);
 
   static bool get filterIntro =>
       _setting.get(SettingBoxKey.filterIntro, defaultValue: false);

@@ -4,6 +4,7 @@ import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/grpc/reply.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
 import 'package:PiliPlus/pages/setting/models/model.dart';
+import 'package:PiliPlus/pages/setting/widgets/select_dialog.dart';
 import 'package:PiliPlus/pages/setting/widgets/slider_dialog.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/utils/storage.dart';
@@ -82,6 +83,12 @@ List<SettingsModel> get replySettings => [
     setKey: SettingBoxKey.blockAtOnlyReply,
     onChanged: _onBlockAtOnlyReplyChanged,
   ),
+  const NormalModel(
+    title: '屏蔽低等级评论',
+    getSubtitle: _replyLevelSubtitle,
+    leading: Icon(Icons.vertical_align_bottom),
+    onTap: _showReplyLevelDialog,
+  ),
   const SwitchModel(
     title: '屏蔽复制简介评论',
     leading: Icon(Icons.summarize),
@@ -95,6 +102,12 @@ List<SettingsModel> get replySettings => [
       ReplyGrpc.replyRegExp = value;
       ReplyGrpc.enableFilter = value.pattern.isNotEmpty;
     },
+  ),
+  getBanWordModel(
+    title: '评论昵称关键词过滤',
+    key: SettingBoxKey.banWordForReplyName,
+    banScope: '仅昵称',
+    onChanged: (value) => ReplyGrpc.replyNameRegExp = value,
   ),
   NormalModel(
     title: '线程式评论折叠阈值',
@@ -240,6 +253,32 @@ Future<void> _showReplyAtBlockDialog(
 
 void _onBlockAtOnlyReplyChanged(bool value) =>
     ReplyGrpc.blockAtOnlyReply = value;
+
+String _replyLevelSubtitle() {
+  final level = Pref.blockReplyLevel;
+  if (level <= 0) return '禁用';
+  return '屏蔽低于Lv$level的评论（严格小于）';
+}
+
+Future<void> _showReplyLevelDialog(
+  BuildContext context,
+  VoidCallback setState,
+) async {
+  final result = await showDialog<int>(
+    context: context,
+    builder: (context) => SelectDialog<int>(
+      title: '屏蔽低等级评论（严格小于）',
+      value: Pref.blockReplyLevel,
+      values: [(0, '禁用'), for (var i = 1; i <= 6; i++) (i, '低于Lv$i')],
+    ),
+  );
+  if (result != null) {
+    ReplyGrpc.blockReplyLevel = result;
+    GStorage.setting
+        .put(SettingBoxKey.blockReplyLevel, result)
+        .whenComplete(setState);
+  }
+}
 
 Future<void> _showReplyDepthDialog(
   BuildContext context,
